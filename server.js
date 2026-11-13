@@ -53,7 +53,7 @@ const supabase = createClient(SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KE
 });
 const app = express();
 const supabaseOrigin = new URL(SUPABASE_URL).origin;
-const allowedOrigins = (process.env.WEB_ORIGIN || `http://localhost:${PORT}`)
+const allowedOrigins = (process.env.WEB_ORIGIN || `https://syncbeats.space`)
 	.split(',')
 	.map(origin => origin.trim())
 	.filter(Boolean);
