@@ -22,7 +22,7 @@ const MAX_PROCESSED_MB = Number(process.env.MAX_PROCESSED_MB || 100);
 const MAX_UPLOAD_BYTES = MAX_UPLOAD_MB * 1024 * 1024;
 const MAX_PROCESSED_BYTES = MAX_PROCESSED_MB * 1024 * 1024;
 const IMAGE_LIMIT_BYTES = 10 * 1024 * 1024;
-const BUCKET = 'media';
+const BUCKET = process.env.SUPABASE_BUCKET || 'media';
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const ADMIN_USER_IDS = new Set((process.env.ADMIN_USER_IDS || '').split(',').map(value => value.trim()).filter(Boolean));
 const AUDIT_LOG_DIR = path.resolve(process.env.AUDIT_LOG_DIR || path.join(ROOT, 'logs'));
