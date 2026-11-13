@@ -12,7 +12,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 
-COPY server.js security-logger.js mine.html admin.html terms.html supabase-setup.sql README.md .env.example ./
+COPY server.js security-logger.js index.html admin.html terms.html supabase-setup.sql README.md .env.example ./
 RUN mkdir -p /app/uploads /app/logs \
 	&& chown -R node:node /app
 
