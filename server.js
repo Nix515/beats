@@ -473,7 +473,7 @@ app.use((error, _req, res, _next) => {
 
 securityLogger.loadRecent().finally(() => {
 	app.listen(PORT, () => {
-		console.log(`RhythmSync is listening on http://localhost:${PORT}`);
+		console.log(`RhythmSync is listening on process.env.PORT`);
 		if (!ADMIN_USER_IDS.size) console.warn('ADMIN_USER_IDS is not configured; the security console is disabled.');
 	});
 });
