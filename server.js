@@ -244,7 +244,7 @@ async function storeObject(objectPath, file, contentType) {
 	return publicUrlFor(objectPath);
 }
 
-app.get(['/','/mine.html'], (_req, res) => res.sendFile(path.join(ROOT, 'mine.html')));
+app.get(['/','/index.html'], (_req, res) => res.sendFile(path.join(ROOT, 'index.html')));
 app.get('/admin.html', (_req, res) => res.sendFile(path.join(ROOT, 'admin.html')));
 app.get('/terms.html', (_req, res) => res.sendFile(path.join(ROOT, 'terms.html')));
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', service: 'RhythmSync media API' }));
