@@ -248,6 +248,26 @@ app.get(['/','/index.html'], (_req, res) => res.sendFile(path.join(ROOT, 'index.
 app.get('/admin.html', (_req, res) => res.sendFile(path.join(ROOT, 'admin.html')));
 app.get('/terms.html', (_req, res) => res.sendFile(path.join(ROOT, 'terms.html')));
 app.get('/api/health', (_req, res) => res.json({ status: 'ok', service: 'RhythmSync media API' }));
+app.post('/api/media/upload', upload.single('media'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'No file uploaded' });
+        }
+
+        // Process your file here (e.g., upload to Supabase storage)
+        const objectPath = `media/${req.file.filename}`;
+        const publicUrlData = publicUrlForObject(objectPath);
+
+        return res.status(200).json({
+            message: 'File uploaded successfully',
+            file: req.file,
+            url: publicUrlData
+        });
+    } catch (error) {
+        console.error('Upload error:', error);
+        return res.status(500).json({ error: error.message || 'Server error during upload' });
+    }
+});
 
 async function requireAdmin(req, res, next) {
 	const token = (req.get('authorization') || '').match(/^Bearer\s+(.+)$/i)?.[1];
