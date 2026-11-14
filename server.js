@@ -53,10 +53,13 @@ const supabase = createClient(SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KE
 });
 const app = express();
 const supabaseOrigin = new URL(SUPABASE_URL).origin;
-const allowedOrigins = (process.env.WEB_ORIGIN || `https://syncbeats.space`)
-	.split(',')
-	.map(origin => origin.trim())
-	.filter(Boolean);
+const allowedOrigins = new Set([
+	'https://syncbeats.space',
+	'https://www.syncbeats.space',
+	...(process.env.WEB_ORIGIN || '').split(',')
+		.map(origin => origin.trim().replace(/\/+$/, ''))
+		.filter(Boolean)
+]);
 const securityLogger = createSecurityLogger({
 	directory: AUDIT_LOG_DIR,
 	hashSecret: process.env.AUDIT_HASH_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -83,7 +86,7 @@ app.use(helmet({
 }));
 app.use(cors({
 	origin(origin, callback) {
-		if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+		if (!origin || allowedOrigins.has(origin)) return callback(null, true);
 		return callback(new Error('Origin is not allowed by CORS.'));
 	}
 }));
