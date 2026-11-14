@@ -104,12 +104,20 @@ alter table public.music_videos
 	add column if not exists storage_path text,
 	add column if not exists file_size bigint,
 	add column if not exists mime_type text;
+
+-- Remove only legacy reaction rows that do not refer to a supported content type.
+-- Valid post/freestyle reactions are preserved before the constraint is rebuilt.
+delete from public.content_likes
+where content_type not in ('track', 'clip', 'music_video', 'post', 'freestyle');
+delete from public.comments
+where content_type not in ('track', 'clip', 'music_video', 'post', 'freestyle');
+
 alter table public.content_likes
 	drop constraint if exists content_likes_content_type_check,
-	add constraint content_likes_content_type_check check (content_type in ('track', 'clip', 'music_video'));
+	add constraint content_likes_content_type_check check (content_type in ('track', 'clip', 'music_video', 'post', 'freestyle'));
 alter table public.comments
 	drop constraint if exists comments_content_type_check,
-	add constraint comments_content_type_check check (content_type in ('track', 'clip', 'music_video'));
+	add constraint comments_content_type_check check (content_type in ('track', 'clip', 'music_video', 'post', 'freestyle'));
 alter table public.clips
 	add column if not exists genre text not null default '',
 	add column if not exists description text not null default '',
@@ -519,13 +527,39 @@ create policy "Visitors can comment as themselves" on public.comments
 	with check (
 		visitor_id = (select auth.uid())
 		and char_length(btrim(body)) between 1 and 500
-		and char_length(btrim(display_name)) between 1 and 40
 		and (
 			(content_type = 'track' and exists (select 1 from public.tracks where id = content_id))
 			or (content_type = 'clip' and exists (select 1 from public.clips where id = content_id))
 			or (content_type = 'music_video' and exists (select 1 from public.music_videos where id = content_id))
 		)
 	);
+
+create or replace function public.set_comment_username()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+begin
+	new.display_name := coalesce(
+		(select nullif(btrim(p.username), '') from public.profiles p where p.user_id = new.visitor_id),
+		'Listener'
+	);
+	return new;
+end;
+$$;
+revoke all on function public.set_comment_username() from public, anon, authenticated;
+drop trigger if exists comments_set_username on public.comments;
+create trigger comments_set_username
+	before insert or update of visitor_id, display_name on public.comments
+	for each row execute function public.set_comment_username();
+
+update public.comments c
+set display_name = coalesce(
+	(select nullif(btrim(p.username), '') from public.profiles p where p.user_id = c.visitor_id),
+	'Listener'
+);
+revoke insert (display_name) on public.comments from anon, authenticated;
 
 drop policy if exists "Anyone can read stream counts" on public.track_streams;
 drop policy if exists "Anyone can read track streams" on public.track_streams;

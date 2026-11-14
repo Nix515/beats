@@ -200,16 +200,37 @@ function validateAudioDuration(seconds, type) {
 	}
 }
 
-function transcodeAudio(inputPath, outputPath) {
+function transcodeAudio(inputPath, outputPath, type) {
+	const isFreestyle = type === 'freestyle';
 	return new Promise((resolve, reject) => {
 		ffmpeg(inputPath)
 			.noVideo()
 			.audioCodec('aac')
-			.audioBitrate('192k')
+			.audioBitrate(isFreestyle ? '64k' : '128k')
+			.audioChannels(isFreestyle ? 1 : 2)
+			.audioFrequency(44100)
 			.outputOptions(['-map 0:a:0', '-movflags +faststart'])
 			.output(outputPath)
 			.on('end', resolve)
 			.on('error', error => reject(new Error(`Audio conversion failed: ${error.message}`)))
+			.run();
+	});
+}
+
+function transcodeImage(inputPath, outputPath) {
+	return new Promise((resolve, reject) => {
+		ffmpeg(inputPath)
+			.outputOptions([
+				'-vf', 'scale=1200:1200:force_original_aspect_ratio=decrease',
+				'-c:v', 'libwebp',
+				'-q:v', '72',
+				'-compression_level', '6',
+				'-an'
+			])
+			.outputFormat('webp')
+			.output(outputPath)
+			.on('end', resolve)
+			.on('error', error => reject(new Error(`Image compression failed: ${error.message}`)))
 			.run();
 	});
 }
@@ -335,10 +356,12 @@ async function handleMediaUpload(req, res, next) {
 		}
 
 		if (type === 'profile_image') {
-			const extension = media.mimetype.split('/')[1].replace('jpeg', 'jpg');
-			const objectPath = `${req.profile.id}/profile/${crypto.randomUUID()}.${extension}`;
+			const convertedPath = path.join(UPLOAD_DIR, `${crypto.randomUUID()}.webp`);
+			localFiles.push(convertedPath);
+			await transcodeImage(media.path, convertedPath);
+			const objectPath = `${req.profile.id}/profile/${crypto.randomUUID()}.webp`;
 			cloudPaths.push(objectPath);
-			const publicUrl = await storeObject(objectPath, media, media.mimetype);
+			const publicUrl = await storeObject(objectPath, { path: convertedPath }, 'image/webp');
 			const { error } = await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', req.profile.id);
 			if (error) throw error;
 			cloudPaths.length = 0;
@@ -355,10 +378,14 @@ async function handleMediaUpload(req, res, next) {
 		let audioDuration = null;
 
 		if (isImage) {
-			const extension = media.mimetype.split('/')[1].replace('jpeg', 'jpg');
-			mediaPath = `${req.profile.id}/posts/${crypto.randomUUID()}.${extension}`;
+			const convertedPath = path.join(UPLOAD_DIR, `${crypto.randomUUID()}.webp`);
+			localFiles.push(convertedPath);
+			await transcodeImage(media.path, convertedPath);
+			processedSize = (await fs.stat(convertedPath)).size;
+			contentType = 'image/webp';
+			mediaPath = `${req.profile.id}/posts/${crypto.randomUUID()}.webp`;
 			cloudPaths.push(mediaPath);
-			mediaUrl = await storeObject(mediaPath, media, media.mimetype);
+			mediaUrl = await storeObject(mediaPath, { path: convertedPath }, contentType);
 		} else {
 			const metadata = await probeAudio(media.path);
 			if (!metadata.streams?.some(stream => stream.codec_type === 'audio')) {
@@ -368,7 +395,7 @@ async function handleMediaUpload(req, res, next) {
 			validateAudioDuration(Number(metadata.format?.duration ?? sourceAudio.duration), type);
 			const convertedPath = path.join(UPLOAD_DIR, `${crypto.randomUUID()}.m4a`);
 			localFiles.push(convertedPath);
-			await transcodeAudio(media.path, convertedPath);
+			await transcodeAudio(media.path, convertedPath, type);
 			const convertedMetadata = await probeAudio(convertedPath);
 			const convertedAudio = convertedMetadata.streams?.find(stream => stream.codec_type === 'audio');
 			audioDuration = Number(convertedMetadata.format?.duration ?? convertedAudio?.duration);
@@ -391,10 +418,12 @@ async function handleMediaUpload(req, res, next) {
 
 		let coverUrl = '';
 		if (cover) {
-			const extension = cover.mimetype.split('/')[1].replace('jpeg', 'jpg');
-			const coverPath = `${req.profile.id}/covers/${crypto.randomUUID()}.${extension}`;
+			const convertedCoverPath = path.join(UPLOAD_DIR, `${crypto.randomUUID()}.webp`);
+			localFiles.push(convertedCoverPath);
+			await transcodeImage(cover.path, convertedCoverPath);
+			const coverPath = `${req.profile.id}/covers/${crypto.randomUUID()}.webp`;
 			cloudPaths.push(coverPath);
-			coverUrl = await storeObject(coverPath, cover, cover.mimetype);
+			coverUrl = await storeObject(coverPath, { path: convertedCoverPath }, 'image/webp');
 		}
 
 		const record = isTrack
