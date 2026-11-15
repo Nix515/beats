@@ -44,7 +44,7 @@
 		</main>
 	</div>
 	<script>
-		const SUPABASE_URL='https://fgntxbricyblykifmmbmfs.supabase.co',SUPABASE_ANON_KEY='sb_publishable_tLWgtwgQGASHQqe7VMsw0g_DFnoGIEk',db=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+		const SUPABASE_URL='https://fgntxbrclybikfmmbmfs.supabase.co',SUPABASE_ANON_KEY='sb_publishable_tLWgtwgQGASHQqe7VMsw0g_DFnoGIEk',db=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 		const $=selector=>document.querySelector(selector);let token='',events=[];
 		const escapeHTML=value=>String(value??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 		function showMessage(message){$('#authMessage').textContent=message;$('#authMessage').classList.remove('hidden')}
