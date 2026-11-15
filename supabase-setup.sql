@@ -206,11 +206,7 @@ begin
 end;
 $$;
 
-revoke all on function public.create_profile_for_new_user() from public, anon, authenticated;
 drop trigger if exists create_profile_after_signup on auth.users;
-create trigger create_profile_after_signup
-	after insert on auth.users
-	for each row execute function public.create_profile_for_new_user();
 
 insert into public.profiles (user_id, username, role)
 select u.id,
@@ -228,6 +224,12 @@ create policy "Users can update their profile" on public.profiles
 	for update to authenticated
 	using (user_id = (select auth.uid()))
 	with check (user_id = (select auth.uid()));
+
+drop policy if exists "Users can create their profile" on public.profiles;
+create policy "Users can create their profile" on public.profiles
+	for insert to authenticated
+	with check (user_id = (select auth.uid()));
+grant insert (user_id, username, role) on public.profiles to authenticated;
 
 drop policy if exists "Tracks are publicly readable" on public.tracks;
 create policy "Tracks are publicly readable" on public.tracks
