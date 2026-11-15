@@ -209,7 +209,7 @@ function transcodeAudio(inputPath, outputPath, type) {
 			.audioBitrate(isFreestyle ? '64k' : '128k')
 			.audioChannels(isFreestyle ? 1 : 2)
 			.audioFrequency(44100)
-			.outputOptions(['-map 0:a:0', '-movflags +faststart'])
+			.outputOptions(['-map 0:a:0', '-movflags +faststart', '-threads', '0'])
 			.output(outputPath)
 			.on('end', resolve)
 			.on('error', error => reject(new Error(`Audio conversion failed: ${error.message}`)))
@@ -225,7 +225,8 @@ function transcodeImage(inputPath, outputPath) {
 				'-c:v', 'libwebp',
 				'-q:v', '72',
 				'-compression_level', '6',
-				'-an'
+				'-an',
+				'-threads', '0'
 			])
 			.outputFormat('webp')
 			.output(outputPath)
