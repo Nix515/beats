@@ -189,17 +189,18 @@ security definer
 set search_path = public, pg_temp
 as $$
 declare
-	chosen_role text := coalesce(new.raw_user_meta_data->>'role', 'listener');
+	chosen_role text := coalesce(nullif(btrim(new.raw_user_meta_data->>'role'), ''), 'listener');
 	chosen_username text := nullif(btrim(new.raw_user_meta_data->>'username'), '');
 begin
 	if chosen_role not in ('listener', 'musician') then
 		chosen_role := 'listener';
 	end if;
 	if chosen_username is null then
-		chosen_username := split_part(coalesce(new.email, 'listener'), '@', 1);
+		chosen_username := nullif(btrim(split_part(coalesce(new.email, ''), '@', 1)), '');
 	end if;
+	chosen_username := left(coalesce(chosen_username, 'listener'), 30);
 	insert into public.profiles (user_id, username, role)
-	values (new.id, left(chosen_username, 30), chosen_role)
+	values (new.id, chosen_username, chosen_role)
 	on conflict (user_id) do nothing;
 	return new;
 end;
